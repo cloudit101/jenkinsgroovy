@@ -1,0 +1,46 @@
+- name: Install and Setup Jenkins worker
+  hosts:
+    - "{{ host_ip }}"
+  become: yes
+  
+  tasks:
+    - name: Create Jenkins group
+      group: 
+        name: jenkins
+        state: present
+    
+    - name: Create Jenkins user
+      user:
+        name: jenkins
+        group: jenkins
+        shell: /bin/bash
+        state: present
+
+    - name: Create ssh directory
+      file:
+        path: "/home/jenkins/.ssh"
+        state: directory
+        mode: 0755 
+        owner: jenkins
+        group: jenkins
+
+    - name: Generate SSH Keypair
+      openssh_keypair:
+        path: /home/jenkins/.ssh/id_rsa
+        type: rsa
+        size: 2048
+        group: jenkins
+        owner: jenkins
+    
+    - name: Add own key to authorized_keys file
+      shell: "cat /home/jenkins/.ssh/id_rsa.pub >> /home/jenkins/.ssh/authorized_keys && chmod 600 /home/ec2-user/.ssh/authorized_keys"
+
+    - name: install dependencies
+      yum:
+        name: "{{ package }} "
+      vars:
+        package:
+        - wget
+        - java-1.8.0-openjdk-devel
+        - java-11-openjdk-devel
+        - git
