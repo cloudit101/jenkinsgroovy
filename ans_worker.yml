@@ -1,0 +1,40 @@
+---
+- hosts: "{{ hosts_ip }}"
+  become: yes
+  tasks:
+    - name: install dependencies
+      yum:
+        name: "{{ package }} "
+        state: present
+      vars:
+        package:
+        - wget
+        - java-11-openjdk-devel
+        - git
+        - haproxy
+      
+    - name: Setup Jenkins Repo
+      get_url:
+        url: https://pkg.jenkins.io/redhat/jenkins.repo
+        dest: /etc/yum.repos.d/jenkins.repo
+    
+    - name: Import Jenkins Repo GPG key
+      rpm_key:
+        state: present
+        key: https://pkg.jenkins.io/redhat/jenkins.io.key
+ 
+    - name: install Jenkins
+      yum:
+        name: jenkins
+        state: present
+
+    - name: Start Jenkins
+      service:
+        name: jenkins
+        state: started
+        enabled: yes
+
+    - name: Wait until Jenkins is up
+      shell: result_first=1; while [[ $result_first != 0 ]]; do if [[ `grep 'Jenkins is fully up and running' /var/log/jenkins/jenkins.log` ]];then result_first=0;else sleep 4;fi;done
+      register: result
+      until: result.rc == 0
